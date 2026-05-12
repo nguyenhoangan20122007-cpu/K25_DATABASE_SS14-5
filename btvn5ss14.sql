@@ -2,14 +2,13 @@ DROP PROCEDURE IF EXISTS FindEmptyBed;
 DELIMITER //
 
 CREATE PROCEDURE FindEmptyBed(
-    IN p_department_id INT, -- Đầu vào: Mã khoa cần tìm giường
-    OUT p_bed_id INT        -- Đầu ra: Trả về Mã giường tìm được (hoặc NULL nếu hết)
+    IN p_department_id INT, 
+    OUT p_bed_id INT     
 )
 BEGIN
     -- Khởi tạo giá trị mặc định là NULL trước khi tìm kiếm
     SET p_bed_id = NULL;
 
-    -- Tìm 1 giường trống trong khoa và khóa dòng đó lại bằng (FOR UPDATE)
     SELECT bed_id INTO p_bed_id
     FROM Beds
     WHERE department_id = p_department_id AND patient_id IS NULL
@@ -18,10 +17,10 @@ BEGIN
 END //
 DELIMITER ;
 
-DROP PROCEDURE IF EXISTS ProcessEmergencyAdmission;
+DROP PROCEDURE IF EXISTS Process_emergency_admission;
 DELIMITER //
 
-CREATE PROCEDURE ProcessEmergencyAdmission(
+CREATE PROCEDURE Process_emergency_dmission(
     IN p_patient_id INT,
     IN p_doctor_id INT,
     IN p_admission_time DATETIME,
@@ -29,10 +28,9 @@ CREATE PROCEDURE ProcessEmergencyAdmission(
     OUT p_status_message VARCHAR(255)
 )
 BEGIN
-    -- Khai báo các biến cục bộ phục vụ kiểm tra điều kiện (Checkpoints)
     DECLARE v_is_admitted INT DEFAULT 0;
     DECLARE v_dept_exists INT DEFAULT 0;
-    DECLARE v_assigned_bed_id INT; -- Biến dùng để "hứng" mã giường trả về từ Sub-Procedure
+    DECLARE v_assigned_bed_id INT; 
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -60,7 +58,6 @@ BEGIN
             -- MỐC KHỞI TẠO: Bắt đầu khối giao dịch thống nhất
             START TRANSACTION;
 
-            -- Gọi Sub-Procedure để dò tìm giường trống. Truyền vào mã khoa và biến hứng kết quả
             CALL FindEmptyBed(p_department_id, v_assigned_bed_id);
 
             -- [CHECKPOINT 3] Xử lý kết quả trả về từ Sub-Procedure
@@ -90,14 +87,14 @@ END //
 DELIMITER ;
 
 
-CALL ProcessEmergencyAdmission(101, 5, '2026-05-12 08:30:00', 2, @result_1);
+CALL Process_emergency_admission(101, 5, '2026-05-12 08:30:00', 2, @result_1);
 SELECT @result_1 AS Test_Case_1;
 
-CALL ProcessEmergencyAdmission(102, 3, '2026-05-12 09:00:00', 1, @result_2);
+CALL Process_emergency_admission(102, 3, '2026-05-12 09:00:00', 1, @result_2);
 SELECT @result_2 AS Test_Case_2;
 
-CALL ProcessEmergencyAdmission(101, 4, '2026-05-12 10:15:00', 2, @result_3);
+CALL Process_emergency_admission(101, 4, '2026-05-12 10:15:00', 2, @result_3);
 SELECT @result_3 AS Test_Case_3;
 
-CALL ProcessEmergencyAdmission(105, 2, '2026-05-12 11:00:00', 999, @result_4);
+CALL Process_emergency_admission(105, 2, '2026-05-12 11:00:00', 999, @result_4);
 SELECT @result_4 AS Test_Case_4;
